@@ -59,7 +59,7 @@
 
 
             <EditText
-                android:id="@+id/etUsuario"
+                android:id="@+id/etCorreo"
                 android:layout_width="match_parent"
                 android:layout_height="55dp"
                 android:background="@drawable/bg_fondo2"
