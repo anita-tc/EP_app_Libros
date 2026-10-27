@@ -2,11 +2,14 @@
 package com.example.pantallas
 
 import android.os.Bundle
+import android.widget.Button
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
+import com.example.pantallas.model.Libro
 import com.example.pantallas.model.LibroResponse
 import com.example.pantallas.network.RetrofitClient
 import retrofit2.Call
@@ -15,52 +18,79 @@ import retrofit2.Response
 
 class HomeActivity : AppCompatActivity() {
 
-    private lateinit var tvResultado: TextView
-    private lateinit var imgLibro: ImageView
+    private lateinit var contenedorRecomendaciones: LinearLayout
+    private lateinit var contenedorContinuar: LinearLayout
+
+    private lateinit var btnComedia: Button
+    private lateinit var btnTerror: Button
+    private lateinit var btnRomance: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
 
-        tvResultado = findViewById(R.id.tvResultado)
-        imgLibro = findViewById(R.id.imgLibro)
+        // Conectar los contenedores del XML
+        contenedorRecomendaciones =
+            findViewById(R.id.contenedorRecomendaciones)
 
-        // Llamar al me para obtener libros
-        obtenerLibros()
+        contenedorContinuar =
+            findViewById(R.id.contenedorContinuar)
+
+        // Conectar los botones de géneros
+        btnComedia = findViewById(R.id.btnComedia)
+        btnTerror = findViewById(R.id.btnTerror)
+        btnRomance = findViewById(R.id.btnRomance)
+
+        // Cargar libros al iniciar la aplicación
+        obtenerLibros("fiction")
+
+        // Buscar libros de comedia
+        btnComedia.setOnClickListener {
+            obtenerLibros("comedy")
+        }
+
+        // Buscar libros de terror
+        btnTerror.setOnClickListener {
+            obtenerLibros("horror")
+        }
+
+        // Buscar libros de romance
+        btnRomance.setOnClickListener {
+            obtenerLibros("romance")
+        }
     }
 
-    //  PARA OBTENER INFORMACIÓN DE LOS LIBROS
-    private fun obtenerLibros() {
+    // Obtener libros de la API
+    private fun obtenerLibros(busqueda: String) {
 
         RetrofitClient.api.obtenerLibros(
-            busqueda = "Harry Potter",
+            busqueda = busqueda,
             limite = 10
         ).enqueue(object : Callback<LibroResponse> {
 
-            // MÉTODO CUANDO LA RESPUESTA ES CORRECTA
             override fun onResponse(
                 call: Call<LibroResponse>,
                 response: Response<LibroResponse>
             ) {
 
-                val libros = response.body()?.docs
+                val libros = response.body()?.docs ?: emptyList()
 
-                if (response.isSuccessful && !libros.isNullOrEmpty()) {
+                if (response.isSuccessful && libros.isNotEmpty()) {
 
-                    // Obtener el primer libro encontrado
-                    val libro = libros[0]
+                    // Mostrar todos los libros en Recomendaciones
+                    mostrarLibros(
+                        libros,
+                        contenedorRecomendaciones
+                    )
 
-                    tvResultado.text =
-                        "Título: ${libro.title ?: "Sin título"}\n\n" +
-                                "Autor: ${libro.authorName?.joinToString(", ") ?: "Autor desconocido"}\n\n" +
-                                "Año de publicación: ${libro.firstPublishYear ?: "No disponible"}"
-
-                    // Mostrar la portada del libro
-                    Glide.with(this@HomeActivity)
-                        .load(libro.obtenerImagenGrande())
-                        .into(imgLibro)
+                    // Mostrar los primeros 3 en Continuar leyendo
+                    mostrarLibros(
+                        libros.take(3),
+                        contenedorContinuar
+                    )
 
                 } else {
+
                     Toast.makeText(
                         this@HomeActivity,
                         "No se encontraron libros",
@@ -69,17 +99,73 @@ class HomeActivity : AppCompatActivity() {
                 }
             }
 
-            // MÉTODO CUANDO FALLA LA CONEXIÓN
             override fun onFailure(
                 call: Call<LibroResponse>,
                 t: Throwable
             ) {
+
                 Toast.makeText(
                     this@HomeActivity,
-                    "Error al conectar con el API: ${t.message}",
+                    "Error en el API: ${t.message}",
                     Toast.LENGTH_LONG
                 ).show()
             }
         })
+    }
+
+    // Mostrar libros dentro del contenedor correspondiente
+    private fun mostrarLibros(
+        libros: List<Libro>,
+        contenedor: LinearLayout
+    ) {
+
+        // Limpiar los libros anteriores
+        contenedor.removeAllViews()
+
+        // Recorrer la lista de libros
+        for (libro in libros) {
+
+            // Crear la vista usando item_book.xml
+            val vistaLibro = layoutInflater.inflate(
+                R.layout.item_book,
+                contenedor,
+                false
+            )
+
+            // Obtener los elementos de cada tarjeta
+            val imgPortada =
+                vistaLibro.findViewById<ImageView>(
+                    R.id.imgPortadaLibro
+                )
+
+            val tvNombreLibro =
+                vistaLibro.findViewById<TextView>(
+                    R.id.tvNombreLibro
+                )
+
+            val tvNombreAutor =
+                vistaLibro.findViewById<TextView>(
+                    R.id.tvNombreAutor
+                )
+
+            // Mostrar el título
+            tvNombreLibro.text =
+                libro.title ?: "Libro sin título"
+
+            // Mostrar el autor
+            tvNombreAutor.text =
+                libro.authorName?.joinToString(", ")
+                    ?: "Autor desconocido"
+
+            // Cargar la portada
+            Glide.with(this@HomeActivity)
+                .load(libro.obtenerImagenGrande())
+                .placeholder(R.color.black)
+                .error(R.color.black)
+                .into(imgPortada)
+
+            // Agregar la tarjeta al contenedor
+            contenedor.addView(vistaLibro)
+        }
     }
 }
