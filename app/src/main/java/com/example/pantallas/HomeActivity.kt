@@ -1,6 +1,8 @@
 
+
 package com.example.pantallas
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.ImageView
@@ -163,6 +165,40 @@ class HomeActivity : AppCompatActivity() {
                 .placeholder(R.color.black)
                 .error(R.color.black)
                 .into(imgPortada)
+
+            // Abrir los detalles del libro al pulsar su tarjeta
+            vistaLibro.setOnClickListener {
+
+                val intent = Intent(
+                    this@HomeActivity,
+                    DetailsActivity::class.java
+                )
+
+                intent.putExtra("ID_LIBRO", libro.key)
+
+                intent.putExtra(
+                    "NOMBRE_LIBRO",
+                    libro.title ?: "Libro sin título"
+                )
+
+                intent.putExtra(
+                    "AUTOR_LIBRO",
+                    libro.authorName?.joinToString(", ")
+                        ?: "Autor desconocido"
+                )
+
+                intent.putExtra(
+                    "ANIO_LIBRO",
+                    libro.firstPublishYear ?: 0
+                )
+
+                intent.putExtra(
+                    "IMAGEN_LIBRO",
+                    libro.obtenerImagenGrande()
+                )
+
+                startActivity(intent)
+            }
 
             // Agregar la tarjeta al contenedor
             contenedor.addView(vistaLibro)
